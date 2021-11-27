@@ -22,7 +22,7 @@ from sklearn.manifold import TSNE as tsn
 from scipy.stats import pearsonr
 
 from data_synthetic import data_generate, plot_cluster, generate_y_final, get_y_final
-from model_disent_final import MTvae
+from model_disent import MTvae
 
 sys.path.append('../')
 
