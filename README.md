@@ -1,4 +1,4 @@
-### DIRECT
+# DIRECT
 
 
 ## Data simulation
