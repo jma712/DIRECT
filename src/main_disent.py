@@ -39,7 +39,7 @@ parser.add_argument('--epochs', type=int, default=301, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--K', type=int, default=6, metavar='N',
+parser.add_argument('--K', type=int, default=4, metavar='N',
                     help='number of clusters')
 parser.add_argument('--trn_rate', type=float, default=0.6, help='training data ratio')
 parser.add_argument('--tst_rate', type=float, default=0.2, help='test data ratio')
@@ -52,11 +52,9 @@ parser.add_argument('--dim_zi', type=int, default=32, metavar='N',
 parser.add_argument('--nogb', action='store_true', default=False,
                     help='Disable Gumbel-Softmax sampling.')
 
-parser.add_argument('--alpha', type=float, default=0.1, help='weight for loss y')
 parser.add_argument('--beta', type=float, default=20, help='weight for loss balance')
 
-parser.add_argument('--dataset', default='amazon-6c', help='dataset to use')  # synthetic, amazon, amazon_6c
-# parser.add_argument('--feature-type', default='c3d', help='dataset to use')
+parser.add_argument('--dataset', default='synthetic', help='dataset to use')  # synthetic, amazon, amazon_6c
 parser.add_argument('--lr', type=float, default=1e-3,
                     help='learning rate for optimizer')
 parser.add_argument('--weight_decay', type=float, default=1e-5,
