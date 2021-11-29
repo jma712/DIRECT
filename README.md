@@ -14,7 +14,7 @@ $ python data_synthetic.py
 
 ## ITE estimation
 ```sh
-$ python main_disent.py --dataset synthetic --K 4 --dim_zt 32 --dim_zi 32 --lr 1e-3 --beta 20 --epochs 300 
+$ python main_disent.py --dataset synthetic --K 4 --dim_zt 32 --dim_zi 32 --lr 1e-3 --beta 20 --epochs 251 
 ```
 
 ## Reference
