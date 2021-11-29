@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE as tsn
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
-#from nltk import word_tokenize
-#from nltk.stem import PorterStemmer, WordNetLemmatizer
+from nltk import word_tokenize
+from nltk.stem import PorterStemmer, WordNetLemmatizer
 
 random.seed(1)
 np.random.seed(1)
