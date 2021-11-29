@@ -54,7 +54,7 @@ parser.add_argument('--nogb', action='store_true', default=False,
 
 parser.add_argument('--beta', type=float, default=20, help='weight for loss balance')
 
-parser.add_argument('--dataset', default='synthetic', help='dataset to use')  # synthetic, amazon, amazon_6c
+parser.add_argument('--dataset', default='synthetic', help='dataset to use')  # synthetic, amazon, amazon-6c
 parser.add_argument('--lr', type=float, default=1e-3,
                     help='learning rate for optimizer')
 parser.add_argument('--weight_decay', type=float, default=1e-5,
@@ -147,7 +147,7 @@ def loss_function(input_ins_batch, mu_zt, logvar_zt, mu_p_zt, logvar_p_zt, qc, m
     return eval_result
 
 
-def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, C_true, inx_spec_treat=None, show_cluster=None, show_disent=True, show_y=False):
+def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, C_true, inx_spec_treat=None, show_cluster=False, show_disent=True, show_y=False):
 
     model.eval()
 
@@ -238,7 +238,7 @@ def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, 
     adj_pred_correctNum_zt += (a_reconstby_zt == input_treat_trn).sum()
     acc_apred_zt = adj_pred_correctNum_zt / (input_treat_trn.shape[0] * input_treat_trn.shape[1])
 
-    if show_cluster is not None:
+    if show_cluster:
         C = torch.argmax(qc, dim=1).cpu().detach().numpy()  # m
         mu_zt = mu_zt.cpu().detach().numpy()
         mu_p_zt = args.mu_p_wt * mu_p_zt.cpu().detach().numpy()
@@ -530,7 +530,7 @@ def experiment_ite(args):
 
     results_all = {'pehe': [], 'ate': []}
 
-    for i_exp in range(0, 3):  # 10 runs of experiments
+    for i_exp in range(0, 10):  # 10 runs of experiments
         print("============== Experiment ", str(i_exp), " =========================")
         trn_idx = idx_trn_list[i_exp]
         val_idx = idx_val_list[i_exp]
@@ -553,8 +553,9 @@ def experiment_ite(args):
         input_treat_trn = adj[trn_idx].T
         input_treat_trn = torch.FloatTensor(input_treat_trn)
 
-        Z_i_list = [torch.FloatTensor(zi) for zi in Z_i_list]
-        Zt = torch.FloatTensor(Zt)
+        if i_exp == 0:
+            Z_i_list = [torch.FloatTensor(zi) for zi in Z_i_list]
+            Zt = torch.FloatTensor(Zt)
 
         dim_t = size_trn
         dim_x = m
@@ -608,9 +609,12 @@ if __name__ == '__main__':
 
     if args.dataset == 'synthetic':
         args.K = 4
+        args.epochs = 251
     elif args.dataset == 'amazon':
         args.K = 3
+        args.epochs = 301
     elif args.dataset == 'amazon-6c':
         args.K = 6
+        args.epochs = 101
     experiment_ite(args)
 

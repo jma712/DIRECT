@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE as tsn
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
-from nltk import word_tokenize
-from nltk.stem import PorterStemmer, WordNetLemmatizer
+#from nltk import word_tokenize
+#from nltk.stem import PorterStemmer, WordNetLemmatizer
 
 random.seed(1)
 np.random.seed(1)
@@ -80,6 +80,9 @@ def generate_y_final(Z_i_list, Zt, adj, params=None, mode="1"):
         y = C * (C1 * np.diag(np.matmul(np.matmul(np.matmul(adj, Zt), W1), zi_all.T)).reshape(-1) + np.dot(zi_all, W2).reshape(-1))
         y1 = np.diag(np.matmul(np.matmul(np.matmul(adj, Zt), W1), zi_all.T)).reshape(-1)
         y2 = np.dot(zi_all, W2).reshape(-1)
+
+        idx_c = np.where(~adj.any(axis=1))[0]
+        y[idx_c] = 0.0
 
     # statistics
     print('generate y with type: ', mode, '; observed y mean/std: ', np.mean(y), np.std(y), ' y1:', np.mean(y1), np.std(y1),
