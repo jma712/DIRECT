@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(description='Disentangled multiple cause VAE')
 parser.add_argument('--nocuda', type=int, default=0, help='Disables CUDA training.')
 parser.add_argument('--batch-size', type=int, default=1500, metavar='N',
                     help='input batch size for training (default: 10000)')
-parser.add_argument('--epochs', type=int, default=201, metavar='N',
+parser.add_argument('--epochs', type=int, default=251, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')

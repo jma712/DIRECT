@@ -69,7 +69,7 @@ def generate_y_final(Z_i_list, Zt, adj, params=None, mode="1"):
             W1 = np.random.normal(0.1, 0.01, size=(d_t, d_x))
             W2 = np.random.normal(100, 0.0001, size=(d_x, 1))
             C1 = 0.1
-            C = 0.012
+            C = 0.02
             params = {'W1': W1, 'type': mode, 'W2': W2, 'C1': C1, 'C': C}
         else:
             W1 = params['W1']
@@ -219,31 +219,6 @@ def data_generate(n, d_x, m, d_t, num_cluster):
     # print("average single cause ate: ", ave_single_ate)
 
     return Z_i_list, Zt, adj, y, C, params
-
-
-def get_y_true_new(Z_i_list, Zt, adj_assign, W1, W2):
-    zi_all = None  # n x (K x d)
-    for k in range(len(Z_i_list)):  # every cluster
-        Z_i_k = Z_i_list[k]
-        zi_all = Z_i_k if zi_all is None else np.concatenate([zi_all, Z_i_k], axis=1)
-
-    n = Z_i_list[0].shape[0]
-    m = Zt.shape[0]
-
-    y0_true = np.zeros(n)
-
-    y_true_list = []
-    for j in range(adj_assign.shape[0]):  # each assignment
-        adj_assign_j = adj_assign[j]  # size = m
-        adj_assign_j = np.tile(adj_assign_j, (n, 1))  # n x m
-
-        y = np.diag(np.matmul(np.matmul(zi_all, W1), adj_assign_j.T)).reshape(-1,1) + np.matmul(np.matmul(adj_assign_j, Zt), W2)
-        y = y.reshape(-1)  # n
-
-        y_true_list.append(y)
-
-    return y_true_list, y0_true
-
 
 def generate_treat(vocal, words_per_treat, num_treat):
     treatments = []
@@ -492,7 +467,7 @@ if __name__ == '__main__':
 
         print('data generated!')
         if saving_in_file:
-            scio.savemat('../dataset/synthetic/synthetic_final.mat', {
+            scio.savemat('../../dataset/synthetic/synthetic_final.mat', {
                 'Z_i_list': Z_i_list, 'Zt': Zt,
                 'adj': adj, 'y': y,
                 'C': C,
@@ -506,7 +481,7 @@ if __name__ == '__main__':
         cv_fit, word_name_select = amazon_data_prep2()  # use a dictionary, randomly select some words as a treatment
 
         if saving_in_file:
-            scio.savemat('../dataset/amazon_pre_3word.mat', {
+            scio.savemat('../../dataset/amazon_pre_3word.mat', {
                 'cv_fit': cv_fit, 'vocalbulary': word_name_select,
             })
             print('data saved!')
@@ -515,7 +490,7 @@ if __name__ == '__main__':
         cv_fit, word_name_select = amazon_data_prep_6c()  # use a dictionary, randomly select some words as a treatment
 
         if saving_in_file:
-            scio.savemat('../dataset/amazon_pre_3word_6c.mat', {
+            scio.savemat('../../dataset/amazon_pre_3word_6c.mat', {
                 'cv_fit': cv_fit, 'vocalbulary': word_name_select,
             })
             print('data saved!')
