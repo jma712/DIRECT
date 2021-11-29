@@ -21,9 +21,9 @@ class MTvae(nn.Module):
 
         # Recognition model
         # q(Z^T|A)
-        self.logvar_zt = nn.Sequential(nn.Linear(dim_input_t, args.dim_zt))
+        self.logvar_zt = nn.Sequential(nn.Linear(dim_input_t, args.dim_zt))  #nn.Tanh()
         self.mu_zt = nn.Sequential(nn.Linear(dim_input_t, args.dim_zt))
-
+        # q(C|Z^T)
         self.qc = nn.Sequential(nn.Linear(args.dim_zt, args.dim_zt), nn.ReLU(), nn.Linear(args.dim_zt, args.K))
         # p(a|z^T)
         self.a_reconstby_zt = nn.Sequential(nn.Linear(args.dim_zt, dim_input_t))
@@ -37,13 +37,13 @@ class MTvae(nn.Module):
         self.mu_p_zt = torch.nn.Parameter(self.mu_p_zt, requires_grad=True)
         self.register_parameter("mu_p_zt", self.mu_p_zt)
         self.mu_p_wt = args.mu_p_wt
-
         self.logvar_p_zt = torch.nn.Parameter(torch.ones((args.K, args.dim_zt),device=args.device), requires_grad=True)
         self.register_parameter("logvar_p_zt", self.logvar_p_zt)
 
         # Generative model
-        # P(A|Z^(I,K),Z^T,C)
-        self.mu_y = nn.Linear(self.dim_zt, self.num_cluster * self.dim_zi)
+        # predict outcome
+        self.y_pred_1 = nn.Linear(self.dim_zt, self.num_cluster * self.dim_zi)
+        self.y_pred_2 = nn.Linear(self.num_cluster * self.dim_zi, 1)
         self.logvar_y = nn.Linear(self.dim_zt, self.num_cluster * self.dim_zi)
 
     def encode_t(self, input_treat):
@@ -55,10 +55,9 @@ class MTvae(nn.Module):
     def get_treat_rep(self, input_treat_new):
         # encoder: zt, zi
         mu_zt, logvar_zt = self.encode_t(input_treat_new)
-        zt_sample = self.reparameterize(mu_zt, logvar_zt)
-        #qc = self.qc(zt_sample)  # m x k, unnormalized logits
+        zt_sample = self.reparameterize(mu_zt, logvar_zt)  # m x d
         qc = self.compute_qc(zt_sample)  # m x k, unnormalized logits
-        cates = F.softmax(qc, dim=1)  # normalize with softmax
+        cates = F.softmax(qc, dim=1)  # normalize with softmax, m x k
 
         return mu_zt, logvar_zt, cates
 
@@ -66,17 +65,19 @@ class MTvae(nn.Module):
         # zt_sample: m x d_t
         if type == 'cos':
             cos = nn.CosineSimilarity(dim=2, eps=1e-6)
-            zt_sample_K = torch.unsqueeze(zt_sample, dim=0).repeat(self.num_cluster, 1, 1)
+            zt_sample_K = torch.unsqueeze(zt_sample, dim=0).repeat(self.num_cluster, 1, 1)  # K x m x d_t
             mu_p_zt = torch.unsqueeze(self.mu_p_zt, dim=1).repeat(1, zt_sample_K.shape[1], 1)
             cos_similarity = cos(self.mu_p_wt * mu_p_zt, zt_sample_K)
             qc = cos_similarity.T
-            qc*= 10
+            qc *= 10
         elif type == 'linear':
             qc = self.qc(zt_sample)
         elif type == 'euc':
-            zt_sample_K = torch.unsqueeze(zt_sample, dim=0).repeat(self.num_cluster, 1, 1)
+
+            zt_sample_K = torch.unsqueeze(zt_sample, dim=0).repeat(self.num_cluster, 1, 1)  # K x m x d_t
             mu_p_zt = torch.unsqueeze(self.mu_p_zt, dim=1).repeat(1, zt_sample_K.shape[1], 1)
-            distance = torch.norm(zt_sample_K - self.mu_p_wt * mu_p_zt, dim=-1)
+
+            distance = torch.norm(zt_sample_K - self.mu_p_wt * mu_p_zt, dim=-1)  # k x m
             qc = 1.0/(distance.T + 1)
         return qc
 
@@ -92,7 +93,7 @@ class MTvae(nn.Module):
 
         # q(z^(I,k)|a^k)
         for k in range(self.num_cluster):
-            cates_k = cates[:, k].reshape(1, -1)
+            cates_k = cates[:, k].reshape(1, -1)  # 1 x m, cates_k[j]=1: item j is in cluster k
 
             # q-network
             x_k = input_ins * cates_k
@@ -109,7 +110,6 @@ class MTvae(nn.Module):
         z = mu + std * epsilon
         '''
         if self.training:
-            # do this only while training
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std)
             return eps.mul(std).add_(mu)
@@ -122,8 +122,8 @@ class MTvae(nn.Module):
         for k in range(self.num_cluster):
             cates_k = c_sample[:, k].reshape(1, -1)
 
-            zi_sample_k = zi_sample_list[k]
-            a_pred_k = torch.matmul(zi_sample_k, zt_sample.T)
+            zi_sample_k = zi_sample_list[k]  # n x d
+            a_pred_k = torch.matmul(zi_sample_k, zt_sample.T)  # n x m
             a_pred_k = torch.sigmoid(a_pred_k)
             a_pred_k = a_pred_k * cates_k
             probs = (a_pred_k if (probs is None) else (probs + a_pred_k))
@@ -132,15 +132,16 @@ class MTvae(nn.Module):
 
     def predictY(self, zt_sample, zi_sample_list, c_sample, adj_batch):
         # concat zi
-        zi_all = None
+        zi_all = None  # batch x (K x d)
         for k in range(len(zi_sample_list)):  # every cluster
             Z_i_k = zi_sample_list[k]
             zi_all = Z_i_k if zi_all is None else torch.cat([zi_all, Z_i_k], dim=1)
 
-        a_zt = torch.matmul(adj_batch, zt_sample)
+        a_zt = torch.matmul(adj_batch, zt_sample)  # batch size x d_t
 
-        rep = self.mu_y(a_zt)
-        mu_y = torch.matmul(rep, zi_all.T).diag().view(-1, 1)
+        rep_w1 = self.y_pred_1(a_zt)
+        pred_y2 = self.y_pred_2(zi_all)
+        mu_y = torch.matmul(rep_w1, zi_all.T).diag().view(-1, 1) + pred_y2
 
         logvar_y = torch.ones_like(mu_y).to(device)
 
@@ -149,18 +150,19 @@ class MTvae(nn.Module):
     def forward(self, input_ins, input_treat):
         # encoder: zt, zi
         mu_zt, logvar_zt = self.encode_t(input_treat)
-        zt_sample = self.reparameterize(mu_zt, logvar_zt)  # sample zt
-        qc = self.compute_qc(zt_sample)
-        qc = F.softmax(qc, dim=1)  # normalize with softmax
+        zt_sample = self.reparameterize(mu_zt, logvar_zt)  # sample zt: m x d
+        qc = self.compute_qc(zt_sample)  # m x k, unnormalized logits
+        qc = F.softmax(qc, dim=1)  # normalize with softmax, m x k
+
         cates = qc
 
         mu_zi_list, logvar_zi_list, c_sample = self.encode_i(input_ins, qc)
 
         a_reconstby_zt = self.a_reconstby_zt(zt_sample)
-        a_reconstby_zt = torch.sigmoid(a_reconstby_zt)
+        a_reconstby_zt = torch.sigmoid(a_reconstby_zt)  # m x n
 
         # sample zi
-        zi_sample_list = []
+        zi_sample_list = []  # size = k, each elem is n x d
         for k in range(self.num_cluster):
             mu_zi_k = mu_zi_list[k]
             logvar_zi_k = logvar_zi_list[k]
@@ -172,6 +174,3 @@ class MTvae(nn.Module):
         mu_y, logvar_y = self.predictY(zt_sample, zi_sample_list, c_sample, input_ins)  # n x 1
 
         return mu_zt, logvar_zt, self.mu_p_zt, self.logvar_p_zt, cates, mu_zi_list, logvar_zi_list, zi_sample_list, a_pred, mu_y, logvar_y, a_reconstby_zt
-
-
-
