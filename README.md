@@ -1,4 +1,5 @@
 # DIRECT
+IJCAI 2021 Paper: Multi-Cause Effect Estimation with Disentangled Confounder Representation
 
 ## Environment
 - python 3.6.5
