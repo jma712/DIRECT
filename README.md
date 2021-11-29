@@ -1,5 +1,10 @@
 # DIRECT
 
+## Environment
+- python 3.6.5
+- numpy 1.18.3
+- pytorch 1.6.0
+- nltk 3.2.2
 
 ## Data simulation
 ```sh
