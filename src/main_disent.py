@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(description='Disentangled multiple cause VAE')
 parser.add_argument('--nocuda', type=int, default=0, help='Disables CUDA training.')
 parser.add_argument('--batch-size', type=int, default=1500, metavar='N',
                     help='input batch size for training (default: 10000)')
-parser.add_argument('--epochs', type=int, default=301, metavar='N',
+parser.add_argument('--epochs', type=int, default=201, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
@@ -73,13 +73,6 @@ print('using device: ', device)
 # seed
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
-
-ym = None
-ys = None
-
-noise = torch.empty(3000, 1).normal_(mean=0, std=0.001)
-if args.cuda:
-    noise = noise.to(args.device)
 
 def loss_function(input_ins_batch, mu_zt, logvar_zt, mu_p_zt, logvar_p_zt, qc, mu_zi_list, logvar_zi_list, zi_sample_list, a_pred, mu_y, logvar_y, target, a_reconstby_zt, input_treat_trn):
     # 1. recontrust loss
@@ -170,9 +163,6 @@ def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, 
 
     data_size = 0
 
-    ave_disent = 0.0
-    b_num = 0
-
     for batch_idx, (adj_batch, target, orin_index) in enumerate(data_loader):
         data_size += adj_batch.shape[0]
         batch_size = adj_batch.shape[0]
@@ -183,11 +173,6 @@ def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, 
 
         mu_zt, logvar_zt, mu_p_zt, logvar_p_zt, qc, mu_zi_list, logvar_zi_list, zi_sample_list, a_pred, mu_y, logvar_y, a_reconstby_zt = model(
             adj_batch, input_treat_trn)
-
-        if show_disent:
-            level_disen = level_of_disentangle(mu_zi_list)
-            ave_disent += level_disen
-            b_num += 1
 
         # accuracy of treatment assignment prediction
         a_pred[a_pred >= 0.5] = 1.0
@@ -233,9 +218,6 @@ def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, 
             ite_true_sum[j] = ite_true_sum[j] + torch.sum(ite_true_j)
             ite_pred_sum[j] = ite_pred_sum[j] + torch.sum(ite_pred_j)
 
-    if show_disent:
-        ave_disent /= b_num
-
     pehe = torch.sqrt(pehe / data_size)
     pehe_ave = torch.sum(pehe) / num_assign
 
@@ -269,8 +251,6 @@ def test(model, data_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, 
         'pehe': pehe_ave, 'ate': ate_ave, 'acc_apred': acc_apred,
         'acc_apred_zt': acc_apred_zt
     }
-    if show_disent:
-        eval_result['level_of_disentangle'] = ave_disent
 
     return eval_result
 
@@ -529,13 +509,13 @@ def loadFromFile(path):
 
 def load_data(dataset):
     if dataset == 'synthetic':
-        Z_i_list, Zt, adj, YF, C, idx_trn_list, idx_val_list, idx_tst_list, params = loadFromFile('../dataset/synthetic/synthetic_final.mat')
+        Z_i_list, Zt, adj, YF, C, idx_trn_list, idx_val_list, idx_tst_list, params = loadFromFile('../../dataset/synthetic/synthetic_final.mat')
     elif dataset == 'amazon':
         Z_i_list, Zt, adj, YF, C, idx_trn_list, idx_val_list, idx_tst_list, params = loadFromFile(
-            '../dataset/amazon/amazon_3C.mat')
+            '../../dataset/amazon/amazon_3C.mat')
     elif dataset == 'amazon-6c':
         Z_i_list, Zt, adj, YF, C, idx_trn_list, idx_val_list, idx_tst_list, params = loadFromFile(
-            '../dataset/amazon/amazon_6C.mat')
+            '../../dataset/amazon/amazon_6C.mat')
 
     print("True C: ", C)
     cluster_size = [(C == i).sum() for i in range(args.K)]
@@ -602,7 +582,7 @@ def experiment_ite(args):
         train(args.epochs, model, trn_loader, val_loader, tst_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params,
               C, optimizer)
         eval_result_tst = test(model, tst_loader, input_treat_trn, adj_assign, Z_i_list, Zt, params, C,
-                               show_cluster=False)
+                               show_cluster=True)
 
         results_all['pehe'].append(eval_result_tst['pehe'])
         results_all['ate'].append(eval_result_tst['ate'])
@@ -633,9 +613,4 @@ if __name__ == '__main__':
     elif args.dataset == 'amazon-6c':
         args.K = 6
     experiment_ite(args)
-
-
-
-
-
 
