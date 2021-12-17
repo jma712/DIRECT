@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(description='Disentangled multiple cause VAE')
 parser.add_argument('--nocuda', type=int, default=0, help='Disables CUDA training.')
 parser.add_argument('--batch-size', type=int, default=1500, metavar='N',
                     help='input batch size for training (default: 10000)')
-parser.add_argument('--epochs', type=int, default=251, metavar='N',
+parser.add_argument('--epochs', type=int, default=150, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
@@ -609,12 +609,9 @@ if __name__ == '__main__':
 
     if args.dataset == 'synthetic':
         args.K = 4
-        args.epochs = 251
     elif args.dataset == 'amazon':
         args.K = 3
-        args.epochs = 301
     elif args.dataset == 'amazon-6c':
         args.K = 6
-        args.epochs = 101
     experiment_ite(args)
 
